@@ -1,8 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ChevronRight, PlayCircle, AlertTriangle } from 'lucide-react';
-import { EXIT_REASONS, TrainerLevel } from '../types';
-import { getExitReflection, getExitIntervention } from '../services/geminiService';
+import { EXIT_REASONS, TrainerLevel, ExitReason } from '../types';
 
 interface EmergencyExitProps {
   onCancelExit: () => void;
@@ -15,49 +14,38 @@ interface EmergencyExitProps {
 
 const EmergencyExit: React.FC<EmergencyExitProps> = ({ onCancelExit, onConfirmExit, timeLeft, streak, task, level }) => {
   const [step, setStep] = useState<'FRICTION' | 'SURVEY' | 'REFLECTION'>('FRICTION');
-  const [selectedReason, setSelectedReason] = useState<string>('');
-  const [reflection, setReflection] = useState<string>('');
-  const [intervention, setIntervention] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const [selectedReason, setSelectedReason] = useState<ExitReason | null>(null);
 
-  // Fetch intervention text immediately on mount
-  useEffect(() => {
-    if (step === 'FRICTION') {
-        getExitIntervention(Math.ceil(timeLeft / 60), level).then(setIntervention);
-    }
-  }, []);
-
-  const handleReasonSelect = async (reasonId: string, label: string) => {
-    setSelectedReason(label);
-    setLoading(true);
-    setStep('REFLECTION');
-    const aiResponse = await getExitReflection(task || "Focus Session", label, level);
-    setReflection(aiResponse);
-    setLoading(false);
-  };
+  const minutesLeft = Math.ceil(timeLeft / 60);
 
   // STEP 1: The "Really?" Screen (Friction)
   if (step === 'FRICTION') {
-      const minutesLeft = Math.ceil(timeLeft / 60);
+      const isLateStage = minutesLeft <= 5;
+
       return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#111] p-6 animate-fade-in text-white">
             <div className="max-w-md w-full border border-white/10 bg-[#1a1a1a] p-8 shadow-2xl relative overflow-hidden">
-                {/* Decoration */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-[#D90429]"></div>
 
                 <div className="text-center mb-8">
-                    <h2 className="text-3xl font-black uppercase italic mb-2">REALLY?</h2>
-                    <p className="text-lg font-bold text-white/60 mb-6">
-                        You have <span className="text-[#D90429]">{minutesLeft} minutes</span> left.
+                    <h2 className="text-4xl font-black uppercase italic mb-4 text-white">
+                        {isLateStage ? "ARE YOU KIDDING?" : "HOLD UP."}
+                    </h2>
+                    
+                    <p className="text-lg font-bold text-white/80 mb-6 uppercase tracking-wide">
+                        You have <span className="text-[#D90429]">{minutesLeft} minutes</span> remaining.
                     </p>
                     
-                    <div className="bg-white/5 p-4 border-l-2 border-[#D90429] text-left mb-6">
-                        <p className="text-sm italic font-medium opacity-80">
-                            "{intervention || "This is the moment where discipline is built. Don't waste it."}"
+                    <div className="bg-white/5 p-6 border-l-4 border-[#D90429] text-left mb-8">
+                        <p className="text-sm font-bold uppercase leading-relaxed text-white/90">
+                            {isLateStage 
+                                ? "You've already done the hard work. Quitting now is worse than not starting at all."
+                                : "This is the moment where discipline is built. Don't waste it."
+                            }
                         </p>
                     </div>
 
-                    <p className="text-xs uppercase tracking-widest text-white/30">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold">
                         I can't force you to stay.<br/>
                         But you told me you wanted this.
                     </p>
@@ -66,17 +54,17 @@ const EmergencyExit: React.FC<EmergencyExitProps> = ({ onCancelExit, onConfirmEx
                 <div className="space-y-4">
                     <button
                         onClick={onCancelExit}
-                        className="w-full py-4 bg-white text-black hover:bg-gray-200 font-black uppercase tracking-wider text-sm transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                        className="w-full py-4 bg-white text-black hover:bg-gray-200 font-black uppercase tracking-wider text-sm transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-[1.02]"
                     >
                         <PlayCircle className="w-5 h-5 fill-current" />
-                        PUSH THROUGH
+                        {isLateStage ? "FINISH THE SESSION" : "STAY LOCKED IN"}
                     </button>
                     
                     <button
                         onClick={() => setStep('SURVEY')}
                         className="w-full py-3 text-white/30 hover:text-[#D90429] font-bold uppercase text-[10px] tracking-[0.2em] transition-colors flex items-center justify-center gap-2"
                     >
-                        I have a real emergency &rarr;
+                        {isLateStage ? "Exit anyway" : "Yes, I need to exit"} &rarr;
                     </button>
                 </div>
             </div>
@@ -88,16 +76,19 @@ const EmergencyExit: React.FC<EmergencyExitProps> = ({ onCancelExit, onConfirmEx
   if (step === 'SURVEY') {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#111] p-6 text-white">
-        <div className="max-w-md w-full border border-white/10 bg-[#1a1a1a] p-8 shadow-2xl">
+        <div className="max-w-md w-full border border-white/10 bg-[#1a1a1a] p-8 shadow-2xl animate-fade-in">
           <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
-              <h2 className="text-xl font-black uppercase tracking-wider">What Happened?</h2>
+              <h2 className="text-xl font-black uppercase tracking-wider italic">What Happened?</h2>
           </div>
           
           <div className="space-y-3">
             {EXIT_REASONS.map((reason) => (
               <button
                 key={reason.id}
-                onClick={() => handleReasonSelect(reason.id, reason.label)}
+                onClick={() => {
+                    setSelectedReason(reason);
+                    setStep('REFLECTION');
+                }}
                 className="w-full text-left px-5 py-4 bg-black/40 border border-white/5 hover:border-white/40 hover:bg-white/5 text-white/70 hover:text-white transition-all flex justify-between items-center group"
               >
                 <span className="font-bold text-xs uppercase tracking-wide">{reason.label}</span>
@@ -107,7 +98,7 @@ const EmergencyExit: React.FC<EmergencyExitProps> = ({ onCancelExit, onConfirmEx
           </div>
 
           <div className="mt-8 text-center">
-             <button onClick={onCancelExit} className="text-[10px] uppercase font-bold text-white/30 hover:text-white">
+             <button onClick={onCancelExit} className="text-[10px] uppercase font-bold text-white/30 hover:text-white transition-colors">
                 Nevermind, I'll finish.
              </button>
           </div>
@@ -116,39 +107,59 @@ const EmergencyExit: React.FC<EmergencyExitProps> = ({ onCancelExit, onConfirmEx
     );
   }
 
-  // STEP 3: The Reflection (Truth)
+  // STEP 3: The Response (Hardass Wisdom)
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#111] p-6 text-white">
-      <div className="max-w-md w-full border border-white/10 bg-[#1a1a1a] p-8 text-center shadow-2xl">
+      <div className="max-w-md w-full border border-white/10 bg-[#1a1a1a] p-8 text-center shadow-2xl animate-fade-in">
         
-        {loading ? (
-            <div className="animate-pulse py-12 flex flex-col items-center">
-                <div className="w-8 h-8 border-2 border-white/20 border-t-[#FFD600] rounded-full animate-spin mb-4"></div>
-                <span className="text-xs font-mono uppercase text-white/40">Analyzing...</span>
-            </div>
-        ) : (
+        {selectedReason && (
             <>
                 <div className="mb-6">
                     <AlertTriangle className="w-8 h-8 text-[#FFD600] mx-auto mb-4" />
-                    <h2 className="text-2xl font-black uppercase tracking-wider mb-2">Debrief</h2>
+                    <h2 className="text-2xl font-black uppercase tracking-wider mb-2 italic text-[#FFD600]">
+                        {selectedReason.responseTitle}
+                    </h2>
                 </div>
 
-                <div className="bg-white/5 p-6 border-l-2 border-[#FFD600] text-left mb-8">
-                    <p className="text-white italic font-medium leading-relaxed text-sm">
-                        "{reflection}"
+                <div className="bg-white/5 p-6 border-l-2 border-[#FFD600] text-left mb-8 space-y-2">
+                    {selectedReason.responseText.map((line, idx) => (
+                         <p key={idx} className="text-white font-bold uppercase leading-relaxed text-xs">
+                            {line}
+                        </p>
+                    ))}
+                </div>
+
+                {selectedReason.resumeAvailable && (
+                     <p className="text-[10px] text-white/40 mb-8 uppercase tracking-widest font-bold">
+                        Your streak is safe if you resume now.
                     </p>
+                )}
+
+                <div className="space-y-3">
+                    {selectedReason.resumeAvailable ? (
+                        <>
+                            <button
+                                onClick={onCancelExit}
+                                className="w-full py-4 bg-white text-black hover:bg-gray-200 font-black uppercase tracking-wider text-sm transition-all"
+                            >
+                                {selectedReason.actionText}
+                            </button>
+                            <button
+                                onClick={() => onConfirmExit(selectedReason.label)}
+                                className="w-full py-3 text-white/30 hover:text-[#D90429] font-bold uppercase text-[10px] tracking-widest"
+                            >
+                                End Session (Break Streak)
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => onConfirmExit(selectedReason.label)}
+                            className="w-full py-4 bg-white/10 hover:bg-white text-white hover:text-black font-black uppercase tracking-wider transition-all border border-white/20"
+                        >
+                            {selectedReason.actionText} (End Session)
+                        </button>
+                    )}
                 </div>
-
-                <p className="text-xs text-white/40 mb-8 uppercase tracking-widest">
-                    Streak Reset. Discipline is built tomorrow.
-                </p>
-
-                <button
-                onClick={() => onConfirmExit(selectedReason)}
-                className="w-full py-4 bg-white/10 hover:bg-white text-white hover:text-black font-black uppercase tracking-wider transition-all border border-white/20"
-                >
-                Acknowledge & Reset
-                </button>
             </>
         )}
       </div>

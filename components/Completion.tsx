@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Check, Zap, Play } from 'lucide-react';
+import { Check, Zap } from 'lucide-react';
 import { TrainerLevel } from '../types';
 
 interface CompletionProps {
@@ -13,8 +13,23 @@ interface CompletionProps {
 const Completion: React.FC<CompletionProps> = ({ onHome, duration, streak, level }) => {
     const minutes = Math.floor(duration / 60);
 
+    const getPraise = () => {
+        switch(level) {
+            case TrainerLevel.RECRUIT:
+                return "You showed up. That's half the battle.";
+            case TrainerLevel.SOLDIER:
+                return "That's what discipline looks like.";
+            case TrainerLevel.WARRIOR:
+                return "Finally. I was starting to think you were all talk.";
+            case TrainerLevel.COMMANDER:
+                return "You're not the same person who started this.";
+            default:
+                return "Good work.";
+        }
+    }
+
     return (
-        <div className="fixed inset-0 bg-[#FFD600] flex items-center justify-center p-6 text-black animate-fade-in">
+        <div className="fixed inset-0 bg-[#FFD600] flex items-center justify-center p-6 text-black animate-fade-in z-[70]">
             <div className="max-w-lg w-full text-center relative">
                 
                 {/* Big Checkmark */}
@@ -24,18 +39,18 @@ const Completion: React.FC<CompletionProps> = ({ onHome, duration, streak, level
 
                 <h1 className="text-6xl font-black uppercase tracking-tighter mb-2 italic">DONE.</h1>
                 <p className="text-xl font-bold uppercase tracking-widest mb-12 opacity-60">
-                    {minutes} Minutes of Deep Work
+                    {minutes} Minutes of Focused Work
                 </p>
 
                 <div className="bg-black/5 p-8 border-2 border-black/10 mb-12">
-                    <p className="text-2xl font-black italic uppercase leading-none mb-2">
-                        "That is what discipline looks like."
+                    <p className="text-2xl font-black italic uppercase leading-tight mb-6">
+                        "{getPraise()}"
                     </p>
-                    <div className="w-12 h-1 bg-black/20 mx-auto my-4"></div>
-                    <div className="flex justify-center items-center gap-6 text-sm font-bold uppercase tracking-wider opacity-60">
-                        <div className="flex items-center gap-1">
+                    <div className="w-12 h-1 bg-black/20 mx-auto my-6"></div>
+                    <div className="flex justify-center items-center gap-6 text-xs font-black uppercase tracking-[0.2em] opacity-60">
+                        <div className="flex items-center gap-2">
                             <Zap className="w-4 h-4 fill-black" />
-                            Level {streak}
+                            Streak: {streak} Days
                         </div>
                         <div>
                             Rank: {level}
@@ -48,13 +63,13 @@ const Completion: React.FC<CompletionProps> = ({ onHome, duration, streak, level
                         onClick={onHome}
                         className="w-full py-5 bg-black text-white hover:scale-[1.02] transition-transform font-black uppercase tracking-widest text-lg shadow-xl"
                     >
-                        Reset & Go Again
+                        GO AGAIN ⚡
                     </button>
                     <button 
-                        onClick={onHome} // In a real app, maybe a share button or break timer
+                        onClick={onHome}
                         className="block w-full py-3 text-xs font-bold uppercase tracking-[0.2em] opacity-50 hover:opacity-100"
                     >
-                        Take a 5 min break
+                        Take a Break
                     </button>
                 </div>
 
